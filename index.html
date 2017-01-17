@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+
+  <!-- the below scripts are getting a file_not_found error -->
+  <script src='pdfmake.min.js'></script>
+  <script src='vfs_fonts.js'></script>
+
+  <style>
+  .tile-links{
+    height: 100px;
+    overflow: scroll;
+  }
+  </style>
+</head>
+<body>
+
+<h2>Tile Query</h2>
+<label for="">Zoom Level: </label>
+<input type="text" value="17" id="zoomLevel">
+<br>
+<label for="">Layer Name: </label>
+<select id="layerName">
+  <option value="ortho">ortho</option>
+  <option value="dem">dem</option>
+</select>
+
+<ul class="tile-links"><form method="get" action="file.pdf">
+  <button type="submit" id="download">Download!</button>
+</form></ul>
+
+
+
+<script>
+
+const zoom = document.querySelector('#zoomLevel');
+const layer = document.querySelector('#layerName');
+const tileList = document.querySelector('.tile-links');
+
+function dronedeployApiReady(){
+  return new Promise((resolve) => {
+    window.dronedeploy.onload(() => {
+      resolve();
+    });
+  });
+}
+
+function getListItemFromLink(linkUrl){
+  const last = (array) => array.slice(-1)[0];
+  console.log(last);
+  return `<button type="button"><li class="items"><a href="${linkUrl}" target="_blank" download>${last(linkUrl.split('/'))}</a></li></button>`;
+}
+
+
+function drawTileLinksToScreen(links){
+  tileList.innerHTML = links.map(getListItemFromLink).join('');
+  console.log(tileList.innerHTML);
+}
+
+
+function fetchTileDataFromPlan(plan){
+  return window.dronedeploy.Tiles.get({planId: plan.id, layerName: layer.value, zoom: parseInt(zoom.value)});
+}
+
+
+function getTilesFromResponse(tileResponse){
+  return tileResponse.tiles;
+}
+
+
+function updateTileLinks(){
+  dronedeployApiReady()
+    .then(() => dronedeploy.Plans.getCurrentlyViewed())
+    // .then(console.log(fetchTileDataFromPlan))
+    .then(fetchTileDataFromPlan)
+    // .then(console.log(getTilesFromResponse))
+    .then(getTilesFromResponse)
+    // .then(console.log(drawTileLinksToScreen))
+    .then(drawTileLinksToScreen)
+}
+
+
+zoom.addEventListener('change', updateTileLinks);
+layer.addEventListener('change', updateTileLinks);
+updateTileLinks();
+
+// define docDefinition to be used with pdfMake
+// var docDefinition = {
+//   var content = [];
+//   for (i = 0; i < document.getElementsByClassName("items").length; i++) {
+//     content.push({
+//       image: "data:image/jpeg;base64, '${linkUrl}'"
+//     });
+//   }
+//   return ({
+//     content: content
+//   });
+// }
+
+// pdfMake.createPdf(docDefinition).download();
+
+</script>
+
+</body>
+</html>
